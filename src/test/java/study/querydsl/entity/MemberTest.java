@@ -1,14 +1,19 @@
 package study.querydsl.entity;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static study.querydsl.entity.QMember.*;
 
 import java.util.List;
 
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.Commit;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.querydsl.jpa.impl.JPAQueryFactory;
 
 import jakarta.persistence.EntityManager;
 
@@ -19,8 +24,11 @@ class MemberTest {
 	@Autowired
 	EntityManager em;
 
-	@Test
-	public void testEntity(){
+	JPAQueryFactory queryFactory;
+
+	@BeforeEach
+	public void before(){
+		queryFactory = new JPAQueryFactory(em);
 		Team teamA = new Team("teamA");
 		Team teamB = new Team("teamB");
 
@@ -38,18 +46,39 @@ class MemberTest {
 		em.persist(member3);
 		em.persist(member4);
 
-		//초기화
-		em.flush();
-		em.clear();
-
-		List<Member> members = em.createQuery("select m from Member m", Member.class)
-			.getResultList();
-
-		for (Member member : members) {
-			System.out.println("member = " + member);
-			System.out.println("member.getTeam() = " + member.getTeam());
-		}
-
 	}
 
+	@Test
+	public void startQuerydsl1(){
+
+		Member findMember = queryFactory
+			.select(member)
+			.from(member)
+			.where(member.username.eq("member1"))
+			.fetchOne();
+
+		assertEquals(findMember.getUsername(), "member1");
+	}
+
+	@Test
+	public void search(){
+		Member findMember = queryFactory
+			.selectFrom(member)
+			.where(member.username.eq("member1")
+				.and(member.age.eq(10)))
+			.fetchOne();
+
+		assertEquals(findMember.getUsername(), "member1");
+	}
+
+	@Test
+	public void searchAndParam(){
+		Member findMember = queryFactory
+			.selectFrom(member)
+			.where(member.username.eq("member1"),
+					member.age.eq(10))
+			.fetchOne();
+
+		assertEquals(findMember.getUsername(), "member1");
+	}
 }
