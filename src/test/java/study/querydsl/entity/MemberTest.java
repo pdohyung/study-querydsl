@@ -2,6 +2,7 @@ package study.querydsl.entity;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static study.querydsl.entity.QMember.*;
+import static study.querydsl.entity.QTeam.*;
 
 import java.util.List;
 
@@ -14,6 +15,7 @@ import org.springframework.test.annotation.Commit;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.querydsl.core.QueryResults;
+import com.querydsl.core.Tuple;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
 import jakarta.persistence.EntityManager;
@@ -28,7 +30,7 @@ class MemberTest {
 	JPAQueryFactory queryFactory;
 
 	@BeforeEach
-	public void before(){
+	public void before() {
 		queryFactory = new JPAQueryFactory(em);
 		Team teamA = new Team("teamA");
 		Team teamB = new Team("teamB");
@@ -50,7 +52,7 @@ class MemberTest {
 	}
 
 	@Test
-	public void startQuerydsl1(){
+	public void startQuerydsl1() {
 
 		Member findMember = queryFactory
 			.select(member)
@@ -62,7 +64,7 @@ class MemberTest {
 	}
 
 	@Test
-	public void search(){
+	public void search() {
 		Member findMember = queryFactory
 			.selectFrom(member)
 			.where(member.username.eq("member1")
@@ -73,18 +75,18 @@ class MemberTest {
 	}
 
 	@Test
-	public void searchAndParam(){
+	public void searchAndParam() {
 		Member findMember = queryFactory
 			.selectFrom(member)
 			.where(member.username.eq("member1"),
-					member.age.eq(10))
+				member.age.eq(10))
 			.fetchOne();
 
 		assertEquals(findMember.getUsername(), "member1");
 	}
 
 	@Test
-	public void getResult(){
+	public void getResult() {
 		// List<Member> fetch = queryFactory
 		// 	.selectFrom(member)
 		// 	.fetch();
@@ -111,7 +113,7 @@ class MemberTest {
 	}
 
 	@Test
-	 public void sort(){
+	public void sort() {
 		em.persist(new Member(null, 100));
 		em.persist(new Member("member5", 100));
 		em.persist(new Member("member6", 100));
@@ -127,7 +129,7 @@ class MemberTest {
 	}
 
 	@Test
-	public void paging1(){
+	public void paging1() {
 		List<Member> result = queryFactory
 			.selectFrom(member)
 			.orderBy(member.username.desc())
@@ -141,7 +143,7 @@ class MemberTest {
 	}
 
 	@Test
-	public void paging2(){
+	public void paging2() {
 		QueryResults<Member> queryResults = queryFactory
 			.selectFrom(member)
 			.orderBy(member.username.desc())
@@ -155,4 +157,40 @@ class MemberTest {
 		assertEquals(queryResults.getResults().size(), 2);
 	}
 
+	@Test
+	public void aggregation(){
+		List<Tuple> result = queryFactory.select(
+				member.count(),
+				member.age.sum(),
+				member.age.avg(),
+				member.age.max(),
+				member.age.min()
+			).from(member)
+			.fetch();
+
+		Tuple tuple = result.get(0);
+		assertEquals(tuple.get(member.count()),  4);
+		assertEquals(tuple.get(member.age.sum()), 100);
+		assertEquals(tuple.get(member.age.avg()), 25);
+		assertEquals(tuple.get(member.age.max()), 40);
+		assertEquals(tuple.get(member.age.min()), 10);
+	}
+
+	@Test
+	public void group(){
+		List<Tuple> result = queryFactory.select(team.name, member.age.avg())
+			.from(member)
+			.join(member.team, team)
+			.groupBy(team.name)
+			.fetch();
+
+		Tuple teamA = result.get(0);
+		Tuple teamB = result.get(1);
+
+		assertEquals(teamA.get(team.name), "teamA");
+		assertEquals(teamA.get(member.age.avg()), 15);
+
+		assertEquals(teamB.get(team.name), "teamB");
+		assertEquals(teamB.get(member.age.avg()), 35);
+	}
 }
