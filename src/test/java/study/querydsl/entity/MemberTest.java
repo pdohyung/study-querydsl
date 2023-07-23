@@ -109,4 +109,21 @@ class MemberTest {
 			.fetchCount();
 
 	}
+
+	@Test
+	 public void sort(){
+		em.persist(new Member(null, 100));
+		em.persist(new Member("member5", 100));
+		em.persist(new Member("member6", 100));
+
+		List<Member> fetch = queryFactory.selectFrom(member)
+			.where(member.age.eq(100))
+			.orderBy(member.age.desc(), member.username.asc().nullsLast())
+			.fetch();
+
+		assertEquals(fetch.get(0).getUsername(), "member5");
+		assertEquals(fetch.get(1).getUsername(), "member6");
+		assertEquals(fetch.get(2).getUsername(), null);
+	}
+
 }
