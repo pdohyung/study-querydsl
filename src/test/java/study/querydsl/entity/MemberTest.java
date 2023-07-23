@@ -13,6 +13,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.Commit;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.querydsl.core.QueryResults;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
 import jakarta.persistence.EntityManager;
@@ -80,5 +81,32 @@ class MemberTest {
 			.fetchOne();
 
 		assertEquals(findMember.getUsername(), "member1");
+	}
+
+	@Test
+	public void getResult(){
+		// List<Member> fetch = queryFactory
+		// 	.selectFrom(member)
+		// 	.fetch();
+		//
+		// Member member1 = queryFactory
+		// 	.selectFrom(member)
+		// 	.fetchOne();
+		//
+		// Member member2 = queryFactory
+		// 	.selectFrom(member)
+		// 	.fetchFirst();
+
+		// QueryResults<Member> fetchResults = queryFactory
+		// 	.selectFrom(member)
+		// 	.fetchResults();
+		//
+		// long total = fetchResults.getTotal();
+		// List<Member> results = fetchResults.getResults();
+
+		long count = queryFactory
+			.selectFrom(member)
+			.fetchCount();
+
 	}
 }
