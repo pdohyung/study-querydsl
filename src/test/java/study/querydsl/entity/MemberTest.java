@@ -126,4 +126,33 @@ class MemberTest {
 		assertEquals(fetch.get(2).getUsername(), null);
 	}
 
+	@Test
+	public void paging1(){
+		List<Member> result = queryFactory
+			.selectFrom(member)
+			.orderBy(member.username.desc())
+			.offset(1)
+			.limit(2)
+			.fetch();
+
+		assertEquals(result.size(), 2);
+		assertEquals(result.get(0).getUsername(), "member3");
+		assertEquals(result.get(1).getUsername(), "member2");
+	}
+
+	@Test
+	public void paging2(){
+		QueryResults<Member> queryResults = queryFactory
+			.selectFrom(member)
+			.orderBy(member.username.desc())
+			.offset(1)
+			.limit(2)
+			.fetchResults();
+
+		assertEquals(queryResults.getTotal(), 4);
+		assertEquals(queryResults.getLimit(), 2);
+		assertEquals(queryResults.getOffset(), 1);
+		assertEquals(queryResults.getResults().size(), 2);
+	}
+
 }
