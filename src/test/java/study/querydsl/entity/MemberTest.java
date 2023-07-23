@@ -158,7 +158,7 @@ class MemberTest {
 	}
 
 	@Test
-	public void aggregation(){
+	public void aggregation() {
 		List<Tuple> result = queryFactory.select(
 				member.count(),
 				member.age.sum(),
@@ -169,7 +169,7 @@ class MemberTest {
 			.fetch();
 
 		Tuple tuple = result.get(0);
-		assertEquals(tuple.get(member.count()),  4);
+		assertEquals(tuple.get(member.count()), 4);
 		assertEquals(tuple.get(member.age.sum()), 100);
 		assertEquals(tuple.get(member.age.avg()), 25);
 		assertEquals(tuple.get(member.age.max()), 40);
@@ -177,7 +177,7 @@ class MemberTest {
 	}
 
 	@Test
-	public void group(){
+	public void group() {
 		List<Tuple> result = queryFactory.select(team.name, member.age.avg())
 			.from(member)
 			.join(member.team, team)
@@ -192,5 +192,61 @@ class MemberTest {
 
 		assertEquals(teamB.get(team.name), "teamB");
 		assertEquals(teamB.get(member.age.avg()), 35);
+	}
+
+	@Test
+	public void join() {
+		List<String> membersTeamA = queryFactory.select(
+				member.username)
+			.from(member)
+			.join(member.team, team)
+			.where(team.name.eq("teamA"))
+			.fetch();
+
+		assertEquals(membersTeamA.size(), 2);
+		assertEquals(membersTeamA.get(0), "member1");
+		assertEquals(membersTeamA.get(1), "member2");
+	}
+
+	@Test
+	public void theta_join() {
+		em.persist(new Member("teamA"));
+		em.persist(new Member("teamB"));
+
+		List<Member> result = queryFactory
+			.select(member)
+			.from(member, team)
+			.where(member.username.eq(team.name))
+			.fetch();
+
+		assertEquals(result.get(0).getUsername(), "teamA");
+		assertEquals(result.get(1).getUsername(), "teamB");
+	}
+
+	@Test
+	public void left_join_on() {
+		List<Tuple> result = queryFactory.select(member, team)
+			.from(member)
+			.leftJoin(member.team, team).on(team.name.eq("teamA"))
+			.fetch();
+		for (Tuple tuple : result) {
+			System.out.println("tuple = " + tuple);
+		}
+	}
+
+	@Test
+	public void left_join_on_no_relation() {
+		em.persist(new Member("teamA"));
+		em.persist(new Member("teamB"));
+
+		List<Tuple> result = queryFactory
+			.select(member, team)
+			.from(member)
+			.leftJoin(team).on(member.username.eq(team.name))
+			.fetch();
+
+		for (Tuple tuple : result) {
+			System.out.println("tuple = " + tuple);
+		}
 	}
 }
