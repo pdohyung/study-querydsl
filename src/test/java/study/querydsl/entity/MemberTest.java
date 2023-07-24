@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
 import jakarta.persistence.EntityManager;
@@ -257,7 +258,7 @@ class MemberTest {
 	EntityManagerFactory emf;
 
 	@Test
-	public void fetch_join_no(){
+	public void fetch_join_no() {
 		em.flush();
 		em.clear();
 
@@ -271,7 +272,7 @@ class MemberTest {
 	}
 
 	@Test
-	public void fetch_join_use(){
+	public void fetch_join_use() {
 		em.flush();
 		em.clear();
 
@@ -283,5 +284,63 @@ class MemberTest {
 
 		boolean loaded = emf.getPersistenceUnitUtil().isLoaded(findMember.getTeam());
 		Assertions.assertThat(loaded).as("패치 조인 미적용").isTrue();
+	}
+
+	@Test
+	public void subQuery() {
+		QMember memberSub = new QMember("memberSub");
+
+		List<Member> result = queryFactory.selectFrom(member)
+			.where(member.age.eq(
+				JPAExpressions.select(memberSub.age.max())
+					.from(memberSub)
+			)).fetch();
+
+		assertEquals(result.get(0).getAge(), 40);
+	}
+
+	@Test
+	public void subQueryGoe() {
+		QMember memberSub = new QMember("memberSub");
+
+		List<Member> result = queryFactory.selectFrom(member)
+			.where(member.age.goe(
+				JPAExpressions
+					.select(memberSub.age.avg())
+					.from(memberSub)
+			)).fetch();
+
+		assertEquals(result.get(0).getAge(), 30);
+		assertEquals(result.get(1).getAge(), 40);
+	}
+
+	@Test
+	public void subQueryIn() {
+		QMember memberSub = new QMember("memberSub");
+
+		List<Member> result = queryFactory.selectFrom(member)
+			.where(member.age.in(
+				JPAExpressions.select(memberSub.age)
+					.from(memberSub)
+					.where(memberSub.age.gt(10))
+			)).fetch();
+
+		Assertions.assertThat(result).extracting("age")
+			.containsExactly(20, 30, 40);
+	}
+
+	@Test
+	public void selectSubQuery() {
+		QMember memberSub = new QMember("memberSub");
+
+		List<Tuple> result = queryFactory
+			.select(member.username,
+				JPAExpressions.select(memberSub.age.avg())
+					.from(memberSub)
+			).from(member)
+			.fetch();
+
+		//System.out.println(result.get(0).get(member.username));
+		System.out.println("result = " + result);
 	}
 }
