@@ -16,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.ExpressionUtils;
+import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberExpression;
@@ -26,6 +28,9 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.PersistenceUnit;
+import study.querydsl.request.MemberRequest;
+import study.querydsl.request.QMemberRequest;
+import study.querydsl.request.UserRequest;
 
 @SpringBootTest
 @Transactional
@@ -405,6 +410,91 @@ class MemberTest {
 			.from(member)
 			.where(member.username.eq("member1"))
 			.fetch();
+		System.out.println("result = " + result);
+	}
+
+	@Test
+	public void simpleProjection(){
+		List<String> result = queryFactory.select(member.username)
+			.from(member)
+			.fetch();
+
+		System.out.println("result = " + result);
+	}
+
+	@Test
+	public void tupleProjection(){
+		List<Tuple> result = queryFactory.select(member.username, member.age)
+			.from(member)
+			.fetch();
+
+		System.out.println("result = " + result);
+	}
+
+	@Test
+	public void findBySetter(){
+		List<MemberRequest> result = queryFactory
+			.select(Projections.bean(study.querydsl.request.MemberRequest.class,
+				member.username, member.age))
+			.from(member)
+			.fetch();
+
+		System.out.println("result = " + result);
+	}
+
+	@Test
+	public void findByField(){
+		List<MemberRequest> result = queryFactory.select(Projections.fields(MemberRequest.class,
+				member.username, member.age))
+			.from(member)
+			.fetch();
+
+		System.out.println("result = " + result);
+	}
+
+	@Test
+	public void findByConstructor(){
+		List<MemberRequest> result = queryFactory.select(Projections.constructor(MemberRequest.class,
+				member.username, member.age))
+			.from(member)
+			.fetch();
+
+		System.out.println("result = " + result);
+	}
+
+	@Test
+	public void findUserRequest(){
+		QMember memberSub = new QMember("memberSub");
+		List<UserRequest> result = queryFactory.select(Projections.fields(UserRequest.class,
+				member.username.as("name"),
+
+				ExpressionUtils.as(JPAExpressions
+					.select(memberSub.age.max())
+					.from(memberSub), "age")
+			))
+				.from(member)
+					.fetch();
+
+		System.out.println("result = " + result);
+	}
+
+	@Test
+	public void findUserRequestByConstructor(){
+		List<UserRequest> result = queryFactory
+			.select(Projections.constructor(UserRequest.class, member.username, member.age))
+			.from(member)
+			.fetch();
+
+		System.out.println("result = " + result);
+	}
+
+	@Test
+	public void findRequestByQueryProjection(){
+		List<MemberRequest> result = queryFactory
+			.select(new QMemberRequest(member.username, member.age))
+			.from(member)
+			.fetch();
+
 		System.out.println("result = " + result);
 	}
 }
