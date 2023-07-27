@@ -14,10 +14,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.Commit;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.ExpressionUtils;
+import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.CaseBuilder;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberExpression;
@@ -496,5 +499,60 @@ class MemberTest {
 			.fetch();
 
 		System.out.println("result = " + result);
+	}
+
+	@Test
+	public void dynamicQuery_BooleanBuilder(){
+		String username = "member1";
+		Integer age = 10;
+
+		List<Member> searchMember1 = searchMember1(username, age);
+
+		System.out.println("searchMember1 = " + searchMember1);
+		assertEquals(searchMember1.size(), 1);
+	}
+
+	private List<Member> searchMember1(String username, Integer age) {
+		BooleanBuilder booleanBuilder = new BooleanBuilder(); // 괄호 안에 초기값 설정 가능
+
+		if(username != null){
+			booleanBuilder.and(member.username.eq(username));
+		}
+
+		if(age != null){
+			booleanBuilder.and(member.age.eq(age));
+		}
+
+		return queryFactory.selectFrom(member)
+			.where(booleanBuilder)
+			.fetch();
+	}
+
+	@Test
+	public void dynamicQuery_Where(){
+		String username = "member2";
+		Integer age = 20;
+
+		List<Member> searchMember2 = searchMember2(username, age);
+		System.out.println("searchMember2 = " + searchMember2);
+		assertEquals(searchMember2.size(), 1);
+	}
+
+	private List<Member> searchMember2(String username, Integer age) {
+		return queryFactory.selectFrom(member)
+			.where(usernameEq(username), ageEq(age)) // where절에 null이 들어오면 무시
+			.fetch();
+	}
+
+	private BooleanExpression usernameEq(String username) { // 이렇게 메서드로 활용하면 조립이 가능하다.
+		return username != null ? member.username.eq(username) : null;
+	}
+
+	private BooleanExpression ageEq(Integer age) {
+		return age != null ? member.age.eq(age) : null;
+	}
+
+	private BooleanExpression allEq(String username, Integer age){ // 편리하지만 해당 메서드의 null 처리는 따로 해줘야함
+		return usernameEq(username).and(ageEq(age));
 	}
 }
